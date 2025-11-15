@@ -8,18 +8,22 @@ class AutoModel:
     """Clase para gestionar operaciones CRUD de autos"""
     
     @staticmethod
-    def crear_auto(marca, modelo, anio, precio, color, transmision, combustible, imagen=None):
+    def crear_auto(marca, modelo, anio, precio, color, transmision, combustible, imagen_url=None, cloudinary_id=None):
         """
         Crea un nuevo registro de auto
         
+        Args:
+            imagen_url: URL de la imagen en Cloudinary
+            cloudinary_id: ID público de la imagen en Cloudinary
+            
         Returns:
             tuple: (success, id_auto/error_message)
         """
         query = """
-            INSERT INTO autos (marca, modelo, anio, precio, color, transmision, combustible, imagen)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO autos (marca, modelo, anio, precio, color, transmision, combustible, imagen, cloudinary_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        params = (marca, modelo, anio, precio, color, transmision, combustible, imagen)
+        params = (marca, modelo, anio, precio, color, transmision, combustible, imagen_url, cloudinary_id)
         return db.execute_query(query, params)
     
     @staticmethod
@@ -45,21 +49,25 @@ class AutoModel:
         return db.fetch_one(query, (id_auto,))
     
     @staticmethod
-    def actualizar_auto(id_auto, marca, modelo, anio, precio, color, transmision, combustible, imagen=None):
+    def actualizar_auto(id_auto, marca, modelo, anio, precio, color, transmision, combustible, imagen_url=None, cloudinary_id=None):
         """
         Actualiza los datos de un auto existente
         
+        Args:
+            imagen_url: URL de la imagen en Cloudinary
+            cloudinary_id: ID público de la imagen en Cloudinary
+            
         Returns:
             tuple: (success, message)
         """
-        if imagen:
+        if imagen_url and cloudinary_id:
             query = """
                 UPDATE autos 
                 SET marca=%s, modelo=%s, anio=%s, precio=%s, color=%s, 
-                    transmision=%s, combustible=%s, imagen=%s
+                    transmision=%s, combustible=%s, imagen=%s, cloudinary_id=%s
                 WHERE id_auto=%s
             """
-            params = (marca, modelo, anio, precio, color, transmision, combustible, imagen, id_auto)
+            params = (marca, modelo, anio, precio, color, transmision, combustible, imagen_url, cloudinary_id, id_auto)
         else:
             query = """
                 UPDATE autos 

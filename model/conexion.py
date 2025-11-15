@@ -4,15 +4,21 @@ Compatible con Windows y Linux
 """
 import mysql.connector
 from mysql.connector import Error
+import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno
+load_dotenv()
 
 class DatabaseConnection:
     """Clase para gestionar la conexión a MySQL"""
     
-    def __init__(self, host='localhost', user='root', password='', database='venta_autos_db'):
-        self.host = host
-        self.user = user
-        self.password = password
-        self.database = database
+    def __init__(self, host=None, user=None, password=None, database=None):
+        # Intentar cargar desde variables de entorno, sino usar valores por defecto
+        self.host = host or os.getenv('DB_HOST', 'localhost')
+        self.user = user or os.getenv('DB_USER', 'root')
+        self.password = password or os.getenv('DB_PASSWORD', '')
+        self.database = database or os.getenv('DB_NAME', 'venta_autos_db')
         self.connection = None
     
     def connect(self):

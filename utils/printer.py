@@ -15,6 +15,13 @@ import os
 import platform
 import subprocess
 
+try:
+    from utils.print_manager import print_manager
+    PRINT_MANAGER_AVAILABLE = True
+except ImportError:
+    PRINT_MANAGER_AVAILABLE = False
+    print("⚠️ Módulo de impresión avanzada no disponible")
+
 class PDFGenerator:
     """Generador de documentos PDF para la aplicación"""
     
@@ -113,6 +120,92 @@ class PDFGenerator:
         ]))
         
         story.append(table)
+        story.append(Spacer(1, 0.5*inch))
+        
+        # Fecha de generación
+        fecha = Paragraph(
+            f"<i>Documento generado el {datetime.now().strftime('%d/%m/%Y a las %H:%M')}</i>",
+            self.styles['Normal']
+        )
+        story.append(fecha)
+        
+        doc.build(story)
+        return output_path
+    
+    def generate_cliente_report(self, output_filename, clientes_data=None):
+        """
+        Genera un reporte PDF con la lista de clientes
+        
+        Args:
+            output_filename: Nombre del archivo de salida
+            clientes_data: Lista de clientes (opcional, si no se provee se obtiene del controlador)
+        """
+        output_path = path_manager.get_output_path(output_filename)
+        doc = SimpleDocTemplate(output_path, pagesize=letter)
+        story = []
+        
+        # Título
+        title = Paragraph("LISTA DE CLIENTES", self.styles['CustomTitle'])
+        story.append(title)
+        
+        # Subtítulo
+        subtitle = Paragraph("AutoGest - Sistema de Gestión de Venta de Autos", self.styles['CustomSubtitle'])
+        story.append(subtitle)
+        story.append(Spacer(1, 0.3*inch))
+        
+        # Usar clientes proporcionados o lista vacía
+        clientes = clientes_data if clientes_data is not None else []
+        
+        if not clientes:
+            no_data = Paragraph("No hay clientes registrados", self.styles['Normal'])
+            story.append(no_data)
+        else:
+            # Información de clientes en tabla
+            heading = Paragraph(f"Total de clientes: {len(clientes)}", self.styles['CustomHeading'])
+            story.append(heading)
+            
+            # Encabezados de tabla
+            data = [['ID', 'Nombre', 'Teléfono', 'Correo', 'Dirección']]
+            
+            # Agregar datos de clientes
+            for cliente in clientes:
+                data.append([
+                    str(cliente.get('id_cliente', '')),
+                    f"{cliente.get('nombre', '')} {cliente.get('apellido', '')}",
+                    cliente.get('telefono', 'N/A'),
+                    cliente.get('correo', 'N/A'),
+                    cliente.get('direccion', 'N/A')
+                ])
+            
+            # Crear tabla
+            table = Table(data, colWidths=[0.5*inch, 1.8*inch, 1.3*inch, 1.8*inch, 1.8*inch])
+            table.setStyle(TableStyle([
+                # Encabezado
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3B82F6')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('TOPPADDING', (0, 0), (-1, 0), 12),
+                
+                # Datos
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#1F2937')),
+                ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # ID centrado
+                ('ALIGN', (1, 1), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+                ('TOPPADDING', (0, 1), (-1, -1), 8),
+                
+                # Bordes y rayas
+                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#E5E7EB')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')])
+            ]))
+            
+            story.append(table)
+        
         story.append(Spacer(1, 0.5*inch))
         
         # Fecha de generación
@@ -271,6 +364,47 @@ class PDFGenerator:
                 subprocess.run(['xdg-open', pdf_path])
         except Exception as e:
             print(f"No se pudo abrir el PDF automáticamente: {str(e)}")
+    
+    def print_pdf(self, pdf_path):
+        """
+        Invoca el diálogo de impresión del sistema operativo para imprimir un PDF
+        Este método abre la ventana nativa de impresión que permite seleccionar
+        impresora, configurar páginas, número de copias, etc.
+        
+        Args:
+            pdf_path: Ruta del archivo PDF a imprimir
+            
+        Returns:
+            bool: True si se invocó el diálogo correctamente
+        """
+        if PRINT_MANAGER_AVAILABLE:
+            return print_manager.print_pdf_with_dialog(pdf_path)
+        else:
+            # Fallback: solo abrir el PDF
+            self.open_pdf(pdf_path)
+            return True
+    
+    def get_available_printers(self):
+        """
+        Obtiene la lista de impresoras disponibles en el sistema
+        
+        Returns:
+            list: Lista de nombres de impresoras disponibles
+        """
+        if PRINT_MANAGER_AVAILABLE:
+            return print_manager.get_available_printers()
+        return []
+    
+    def get_default_printer(self):
+        """
+        Obtiene el nombre de la impresora predeterminada
+        
+        Returns:
+            str: Nombre de la impresora predeterminada
+        """
+        if PRINT_MANAGER_AVAILABLE:
+            return print_manager.get_default_printer()
+        return None
 
 # Instancia global del generador de PDFs
 pdf_generator = PDFGenerator()

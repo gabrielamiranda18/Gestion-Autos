@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS autos (
     transmision ENUM('Manual','Automática') DEFAULT 'Manual',
     combustible ENUM('Gasolina','Diésel','Eléctrico','Híbrido') DEFAULT 'Gasolina',
     imagen VARCHAR(255),
+    cloudinary_id VARCHAR(255),
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

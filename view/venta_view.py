@@ -17,6 +17,7 @@ class VentaView(ctk.CTkFrame):
         super().__init__(parent, fg_color="#F4F6F7")
         
         self.selected_venta = None
+        self.selected_row_frame = None  # Para resaltar la fila seleccionada
         
         # Configurar grid
         self.grid_columnconfigure(0, weight=1)
@@ -97,15 +98,24 @@ class VentaView(ctk.CTkFrame):
         headers = ["ID", "Cliente", "Auto", "Fecha", "Monto", "Método de Pago", "Acciones"]
         weights = [1, 3, 3, 2, 2, 2, 1]
         
-        for i, (header, weight) in enumerate(zip(headers, weights)):
+        # Configurar columnas del header
+        for i, weight in enumerate(weights):
             headers_frame.grid_columnconfigure(i, weight=weight)
+        
+        # Crear encabezados con celdas para alineación perfecta
+        for i, header in enumerate(headers):
+            header_cell = ctk.CTkFrame(headers_frame, fg_color="transparent", height=45)
+            header_cell.grid(row=0, column=i, sticky="nsew", padx=5)
+            header_cell.grid_propagate(False)
+            
             label = ctk.CTkLabel(
-                headers_frame,
+                header_cell,
                 text=header,
-                font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
-                text_color="#1F2937"
+                font=ctk.CTkFont(family="Inter", size=13, weight="bold"),
+                text_color="#1F2937",
+                anchor="center"
             )
-            label.grid(row=0, column=i, padx=10, pady=12, sticky="w")
+            label.place(relx=0.5, rely=0.5, anchor="center")
         
         self.table_scroll = ctk.CTkScrollableFrame(table_frame, fg_color="#FFFFFF")
         self.table_scroll.grid(row=1, column=0, sticky="nsew")
@@ -131,15 +141,23 @@ class VentaView(ctk.CTkFrame):
             row_frame = ctk.CTkFrame(
                 self.table_scroll,
                 fg_color="#FFFFFF" if i % 2 == 0 else "#F9FAFB",
-                corner_radius=0
+                corner_radius=0,
+                height=50
             )
             row_frame.grid(row=i, column=0, sticky="ew", pady=1)
+            row_frame.grid_propagate(False)
             row_frame.grid_columnconfigure(0, weight=1)
             
-            row_frame.bind("<Button-1>", lambda e, v=venta: self.select_venta(v))
-            row_frame.bind("<Enter>", lambda e, rf=row_frame: rf.configure(fg_color="#DBEAFE"))
+            # Configurar cursor para toda la fila
+            row_frame.configure(cursor="hand2")
+            
+            # Aplicar eventos de clic a toda la fila y sus hijos
+            self.bind_click_recursive(row_frame, venta, row_frame)
+            
+            # Eventos hover
+            row_frame.bind("<Enter>", lambda e, rf=row_frame: rf.configure(fg_color="#DBEAFE") if rf != self.selected_row_frame else None)
             row_frame.bind("<Leave>", lambda e, rf=row_frame, idx=i: rf.configure(
-                fg_color="#FFFFFF" if idx % 2 == 0 else "#F9FAFB"
+                fg_color="#BFDBFE" if rf == self.selected_row_frame else ("#FFFFFF" if idx % 2 == 0 else "#F9FAFB")
             ))
             
             data_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
@@ -157,12 +175,12 @@ class VentaView(ctk.CTkFrame):
             ]
             
             # Configurar columnas
-            for col, weight in enumerate(weights[:-1]):
-                data_frame.grid_columnconfigure(col, weight=weight, minsize=50)
+            for col, weight in enumerate(weights):
+                data_frame.grid_columnconfigure(col, weight=weight)
             
-            # Crear celdas
-            for j, (value, weight) in enumerate(zip(values, weights[:-1])):
-                cell_frame = ctk.CTkFrame(data_frame, fg_color="transparent", height=35)
+            # Crear celdas centradas para los datos
+            for j, value in enumerate(values):
+                cell_frame = ctk.CTkFrame(data_frame, fg_color="transparent", height=40)
                 cell_frame.grid(row=0, column=j, sticky="nsew", padx=5)
                 cell_frame.grid_propagate(False)
                 
@@ -175,39 +193,96 @@ class VentaView(ctk.CTkFrame):
                 )
                 label.place(relx=0.5, rely=0.5, anchor="center")
             
-            # Frame para botones de acción
-            actions_frame = ctk.CTkFrame(data_frame, fg_color="transparent", height=35)
+            # Frame para botones de acción con diseño profesional
+            actions_frame = ctk.CTkFrame(data_frame, fg_color="transparent", height=40)
             actions_frame.grid(row=0, column=len(values), sticky="nsew", padx=5)
             actions_frame.grid_propagate(False)
             
             buttons_container = ctk.CTkFrame(actions_frame, fg_color="transparent")
             buttons_container.place(relx=0.5, rely=0.5, anchor="center")
             
+            # Botón Eliminar con diseño moderno
             btn_eliminar = ctk.CTkButton(
                 buttons_container,
-                text="🗑️",
-                width=30,
-                height=30,
-                fg_color="#DC2626",
-                hover_color="#B91C1C",
-                corner_radius=8,
+                text="",
+                width=40,
+                height=40,
+                fg_color="#EF4444",
+                hover_color="#DC2626",
+                corner_radius=10,
+                border_width=0,
                 command=lambda v=venta: self.eliminar_venta(v)
             )
-            btn_eliminar.pack(side="left", padx=2)
+            btn_eliminar.pack(side="left", padx=4)
+            
+            # Ícono de eliminar (papelera) con mejor diseño
+            icon_delete_label = ctk.CTkLabel(
+                btn_eliminar,
+                text="🗑",
+                font=ctk.CTkFont(family="Segoe UI Emoji", size=18),
+                text_color="#FFFFFF"
+            )
+            icon_delete_label.place(relx=0.5, rely=0.5, anchor="center")
+            icon_delete_label.configure(cursor="hand2")
+            icon_delete_label.bind("<Button-1>", lambda e, v=venta: self.eliminar_venta(v))
     
-    def select_venta(self, venta):
-        """Selecciona una venta de la tabla"""
+    def bind_click_recursive(self, widget, venta, row_frame):
+        """Vincula eventos de clic a un widget y todos sus hijos recursivamente"""
+        # Excluir botones de acción del binding recursivo
+        widget_class = widget.winfo_class()
+        if 'Button' in widget_class:
+            return
+        
+        # Vincular el evento de clic
+        widget.bind("<Button-1>", lambda e: self.select_venta(venta, row_frame))
+        
+        # Aplicar recursivamente a todos los hijos
+        for child in widget.winfo_children():
+            self.bind_click_recursive(child, venta, row_frame)
+    
+    def select_venta(self, venta, row_frame=None):
+        """Selecciona una venta de la tabla con resaltado visual"""
+        # Restaurar color de la fila previamente seleccionada
+        if self.selected_row_frame:
+            try:
+                idx = list(self.table_scroll.winfo_children()).index(self.selected_row_frame)
+                self.selected_row_frame.configure(fg_color="#FFFFFF" if idx % 2 == 0 else "#F9FAFB")
+            except:
+                pass
+        
+        # Seleccionar la nueva venta
         self.selected_venta = venta
+        self.selected_row_frame = row_frame
+        
+        # Resaltar la nueva fila seleccionada
+        if row_frame:
+            row_frame.configure(fg_color="#BFDBFE")
+        
+        print(f"✓ Venta seleccionada: ID {venta['id_venta']} - Cliente: {venta['cliente_nombre']}")
     
     def show_form_nuevo(self):
         """Muestra el formulario para crear una nueva venta"""
         form_window = ctk.CTkToplevel(self)
         form_window.title("Nueva Venta")
-        form_window.geometry("500x500")
-        form_window.resizable(False, False)
+        
+        # Calcular tamaño dinámico (65% de la altura de pantalla, máx 550px)
+        screen_height = form_window.winfo_screenheight()
+        window_height = min(int(screen_height * 0.65), 550)
+        window_width = 500
+        
+        form_window.geometry(f"{window_width}x{window_height}")
+        form_window.resizable(True, True)  # Permitir redimensionar
+        form_window.minsize(450, 400)  # Tamaño mínimo
         
         form_window.transient(self)
         form_window.grab_set()
+        
+        # Centrar en la pantalla
+        form_window.update_idletasks()
+        screen_width = form_window.winfo_screenwidth()
+        x = (screen_width // 2) - (window_width // 2)
+        y = (screen_height // 2) - (window_height // 2)
+        form_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
         
         # Contenedor principal
         main_frame = ctk.CTkFrame(form_window, fg_color="#F4F6F7")
@@ -226,6 +301,10 @@ class VentaView(ctk.CTkFrame):
         form_frame = ctk.CTkFrame(main_frame, fg_color="#FFFFFF", corner_radius=10)
         form_frame.pack(fill="both", expand=True)
         
+        # Scroll para el formulario
+        scroll_frame = ctk.CTkScrollableFrame(form_frame, fg_color="transparent")
+        scroll_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
         # Obtener autos y clientes
         success_autos, autos = AutoController.obtener_todos()
         success_clientes, clientes = ClienteController.obtener_todos()
@@ -237,87 +316,87 @@ class VentaView(ctk.CTkFrame):
         
         # Cliente
         label_cliente = ctk.CTkLabel(
-            form_frame,
+            scroll_frame,
             text="Cliente:",
             font=ctk.CTkFont(size=12),
             text_color="#2E2E2E"
         )
-        label_cliente.pack(anchor="w", padx=20, pady=(15, 5))
+        label_cliente.pack(anchor="w", padx=0, pady=(5, 5))
         
         clientes_dict = {f"{c['nombre']} (ID: {c['id_cliente']})": c['id_cliente'] for c in clientes}
         cliente_var = ctk.StringVar()
         cliente_combo = ctk.CTkComboBox(
-            form_frame,
+            scroll_frame,
             values=list(clientes_dict.keys()),
             variable=cliente_var,
             height=35
         )
-        cliente_combo.pack(fill="x", padx=20)
+        cliente_combo.pack(fill="x", padx=0)
         
         # Auto
         label_auto = ctk.CTkLabel(
-            form_frame,
+            scroll_frame,
             text="Auto:",
             font=ctk.CTkFont(size=12),
             text_color="#2E2E2E"
         )
-        label_auto.pack(anchor="w", padx=20, pady=(10, 5))
+        label_auto.pack(anchor="w", padx=0, pady=(10, 5))
         
         autos_dict = {f"{a['marca']} {a['modelo']} {a['anio']} - ${a['precio']:,.2f}": a['id_auto'] for a in autos}
         auto_var = ctk.StringVar()
         auto_combo = ctk.CTkComboBox(
-            form_frame,
+            scroll_frame,
             values=list(autos_dict.keys()),
             variable=auto_var,
             height=35
         )
-        auto_combo.pack(fill="x", padx=20)
+        auto_combo.pack(fill="x", padx=0)
         
         # Monto
         label_monto = ctk.CTkLabel(
-            form_frame,
+            scroll_frame,
             text="Monto:",
             font=ctk.CTkFont(size=12),
             text_color="#2E2E2E"
         )
-        label_monto.pack(anchor="w", padx=20, pady=(10, 5))
+        label_monto.pack(anchor="w", padx=0, pady=(10, 5))
         
-        monto_entry = ctk.CTkEntry(form_frame, height=35)
-        monto_entry.pack(fill="x", padx=20)
+        monto_entry = ctk.CTkEntry(scroll_frame, height=35)
+        monto_entry.pack(fill="x", padx=0)
         
         # Método de pago
         label_metodo = ctk.CTkLabel(
-            form_frame,
+            scroll_frame,
             text="Método de Pago:",
             font=ctk.CTkFont(size=12),
             text_color="#2E2E2E"
         )
-        label_metodo.pack(anchor="w", padx=20, pady=(10, 5))
+        label_metodo.pack(anchor="w", padx=0, pady=(10, 5))
         
         metodo_var = ctk.StringVar(value="Efectivo")
         metodo_combo = ctk.CTkComboBox(
-            form_frame,
+            scroll_frame,
             values=["Efectivo", "Tarjeta", "Transferencia"],
             variable=metodo_var,
             height=35
         )
-        metodo_combo.pack(fill="x", padx=20)
+        metodo_combo.pack(fill="x", padx=0)
         
         # Fecha
         label_fecha = ctk.CTkLabel(
-            form_frame,
+            scroll_frame,
             text="Fecha (YYYY-MM-DD):",
             font=ctk.CTkFont(size=12),
             text_color="#2E2E2E"
         )
-        label_fecha.pack(anchor="w", padx=20, pady=(10, 5))
+        label_fecha.pack(anchor="w", padx=0, pady=(10, 5))
         
-        fecha_entry = ctk.CTkEntry(form_frame, height=35)
+        fecha_entry = ctk.CTkEntry(scroll_frame, height=35)
         fecha_entry.insert(0, datetime.now().strftime("%Y-%m-%d"))
-        fecha_entry.pack(fill="x", padx=20)
+        fecha_entry.pack(fill="x", padx=0)
         
         # Botones
-        buttons_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        buttons_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         buttons_frame.pack(pady=20)
         
         btn_guardar = ctk.CTkButton(
@@ -376,13 +455,13 @@ class VentaView(ctk.CTkFrame):
         # Confirmar eliminación
         confirm = messagebox.askyesno(
             "Confirmar eliminación",
-            f"¿Está seguro de eliminar la venta ID {self.selected_venta['id_venta']}?"
+            f"¿Está seguro de eliminar la venta ID {venta['id_venta']}?"
         )
         
         if not confirm:
             return
         
-        success, result = VentaController.eliminar_venta(self.selected_venta['id_venta'])
+        success, result = VentaController.eliminar_venta(venta['id_venta'])
         
         if success:
             messagebox.showinfo("Éxito", "Venta eliminada correctamente")
@@ -392,7 +471,7 @@ class VentaView(ctk.CTkFrame):
             messagebox.showerror("Error", result)
     
     def generar_pdf(self):
-        """Genera un PDF de la venta seleccionada"""
+        """Genera un PDF de la venta seleccionada e invoca el diálogo de impresión"""
         if not self.selected_venta:
             messagebox.showwarning("Advertencia", "Debe seleccionar una venta para generar el PDF")
             return
@@ -401,12 +480,21 @@ class VentaView(ctk.CTkFrame):
             filename = f"venta_{self.selected_venta['id_venta']}_comprobante.pdf"
             output_path = pdf_generator.generate_venta_report(self.selected_venta, filename)
             
-            open_pdf = messagebox.askyesno(
-                "PDF Generado",
-                f"Comprobante PDF generado correctamente en:\n{output_path}\n\n¿Desea abrir el archivo?"
+            # Preguntar qué acción desea realizar
+            respuesta = messagebox.askyesnocancel(
+                "Comprobante Generado",
+                f"Comprobante PDF generado correctamente en:\n{output_path}\n\n"
+                "¿Desea abrir el PDF para imprimir?\n\n"
+                "Sí = Mostrar diálogo de impresora\n"
+                "No = Solo ver el PDF\n"
+                "Cancelar = Cerrar este mensaje"
             )
             
-            if open_pdf:
+            if respuesta is True:  # Sí - Mostrar diálogo de impresora
+                from utils.printer_dialog import PrinterDialog
+                result, printer = PrinterDialog.show_dialog(self, output_path)
+            elif respuesta is False:  # No - Solo ver
                 pdf_generator.open_pdf(output_path)
+            
         except Exception as e:
             messagebox.showerror("Error", f"Error al generar PDF: {str(e)}")

@@ -4,8 +4,7 @@ Intermediario entre la vista y el modelo
 """
 from model.auto_model import AutoModel
 from utils.validators import Validator
-from utils.paths import path_manager
-import shutil
+from utils.cloudinary_service import CloudinaryService
 from pathlib import Path
 
 class AutoController:
@@ -45,37 +44,34 @@ class AutoController:
     @staticmethod
     def guardar_imagen(source_path):
         """
-        Copia una imagen al directorio de imágenes de la aplicación
+        Sube una imagen a Cloudinary
         
+        Args:
+            source_path (str): Ruta local de la imagen
+            
         Returns:
-            str: Nombre del archivo guardado o None si hay error
+            tuple: (image_url, public_id) o (None, None) si hay error
         """
         if not source_path:
-            return None
+            return None, None
         
         try:
             source = Path(source_path)
             if not source.exists():
-                return None
+                return None, None
             
-            # Generar nombre único si es necesario
-            dest_filename = source.name
-            dest_path = Path(path_manager.get_image_path(dest_filename))
+            # Subir a Cloudinary
+            success, url_or_error, public_id = CloudinaryService.upload_image(str(source), folder="gestion-autos/autos")
             
-            # Si el archivo ya existe, agregar un número
-            counter = 1
-            while dest_path.exists():
-                name_parts = source.stem, counter, source.suffix
-                dest_filename = f"{name_parts[0]}_{name_parts[1]}{name_parts[2]}"
-                dest_path = Path(path_manager.get_image_path(dest_filename))
-                counter += 1
-            
-            # Copiar el archivo
-            shutil.copy2(source, dest_path)
-            return dest_filename
+            if success:
+                return url_or_error, public_id
+            else:
+                print(f"Error al subir imagen: {url_or_error}")
+                return None, None
+                
         except Exception as e:
             print(f"Error al guardar imagen: {e}")
-            return None
+            return None, None
     
     @staticmethod
     def crear_auto(marca, modelo, anio, precio, color, transmision, combustible, imagen_path=None):
@@ -92,14 +88,15 @@ class AutoController:
         if not valid:
             return False, msg
         
-        # Guardar imagen si existe
-        imagen_filename = None
+        # Subir imagen a Cloudinary si existe
+        imagen_url = None
+        cloudinary_id = None
         if imagen_path:
-            imagen_filename = AutoController.guardar_imagen(imagen_path)
+            imagen_url, cloudinary_id = AutoController.guardar_imagen(imagen_path)
         
         # Crear el auto
         return AutoModel.crear_auto(
-            marca, modelo, anio, precio, color, transmision, combustible, imagen_filename
+            marca, modelo, anio, precio, color, transmision, combustible, imagen_url, cloudinary_id
         )
     
     @staticmethod
@@ -117,14 +114,24 @@ class AutoController:
         if not valid:
             return False, msg
         
-        # Guardar nueva imagen si existe
-        imagen_filename = None
+        # Obtener datos actuales del auto para eliminar imagen anterior si existe
+        imagen_url = None
+        cloudinary_id = None
+        
         if imagen_path:
-            imagen_filename = AutoController.guardar_imagen(imagen_path)
+            # Obtener el auto actual
+            success_get, auto_actual = AutoModel.obtener_por_id(id_auto)
+            
+            # Si hay una imagen anterior en Cloudinary, eliminarla
+            if success_get and auto_actual.get('cloudinary_id'):
+                CloudinaryService.delete_image(auto_actual['cloudinary_id'])
+            
+            # Subir nueva imagen
+            imagen_url, cloudinary_id = AutoController.guardar_imagen(imagen_path)
         
         # Actualizar el auto
         return AutoModel.actualizar_auto(
-            id_auto, marca, modelo, anio, precio, color, transmision, combustible, imagen_filename
+            id_auto, marca, modelo, anio, precio, color, transmision, combustible, imagen_url, cloudinary_id
         )
     
     @staticmethod

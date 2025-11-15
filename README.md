@@ -4,7 +4,8 @@ Sistema completo de gestión para concesionarias de autos desarrollado en Python
 
 ## Características
 
-- **Gestión de Autos**: CRUD completo con soporte para imágenes
+- **Gestión de Autos**: CRUD completo con soporte para imágenes en la nube
+- **Almacenamiento en Cloudinary**: Imágenes optimizadas y accesibles globalmente
 - **Gestión de Clientes**: Registro y administración de clientes
 - **Gestión de Ventas**: Registro de ventas con relación auto-cliente
 - **Reportes**: Estadísticas y generación de PDFs profesionales
@@ -25,6 +26,8 @@ Sistema completo de gestión para concesionarias de autos desarrollado en Python
 
 - Python 3.8 o superior
 - MySQL 5.7 o superior
+- Cuenta gratuita en Cloudinary (para almacenamiento de imágenes)
+- Conexión a internet (para subir/cargar imágenes)
 - Sistema operativo: Windows 10/11 o Linux (Ubuntu 20.04+)
 
 ## Instalación
@@ -95,13 +98,63 @@ mysql -u root -p < database/create_database.sql
 **Opción 2 - Desde la aplicación:**
 La aplicación creará automáticamente la base de datos al iniciar si no existe.
 
+## 🚀 Inicio Rápido Multiplataforma
+
+### Windows:
+```cmd
+run.bat
+```
+
+### Linux / macOS:
+```bash
+chmod +x run.sh
+./run.sh
+```
+
+Los scripts automáticamente:
+- ✅ Crean el entorno virtual
+- ✅ Instalan dependencias
+- ✅ Verifican la configuración
+- ✅ Inician la aplicación
+
+📖 **Instalación detallada por sistema**: Ver `INSTALACION_MULTIPLATAFORMA.md`
+
+---
+
 ## Uso
 
 ### Iniciar la aplicación
 
-\`\`\`bash
+**Opción 1 - Scripts automáticos (RECOMENDADO):**
+
+Windows:
+```cmd
+run.bat
+```
+
+Linux/macOS:
+```bash
+./run.sh
+```
+
+**Opción 2 - Manual:**
+
+Windows:
+```cmd
+venv\Scripts\activate
 python main.py
-\`\`\`
+```
+
+Linux/macOS:
+```bash
+source venv/bin/activate
+python3 main.py
+```
+
+**Opción 3 - Con verificaciones:**
+```bash
+python run.py
+```
 
 ### Navegación
 
@@ -115,11 +168,13 @@ La aplicación cuenta con un **sidebar lateral** con las siguientes secciones:
 ### Funcionalidades principales
 
 #### Gestión de Autos
-- Agregar nuevos autos con imagen
+- Agregar nuevos autos con imagen (se sube automáticamente a Cloudinary)
 - Editar información de autos existentes
-- Eliminar autos
+- Eliminar autos (elimina también la imagen de Cloudinary)
 - Buscar autos por marca, modelo o color
 - Generar PDF con ficha técnica del vehículo
+- Imágenes optimizadas automáticamente (800x800px máx)
+- Acceso rápido a imágenes vía CDN global
 
 #### Gestión de Clientes
 - Registrar nuevos clientes
@@ -183,6 +238,33 @@ car-sales-app/
 
 ## Solución de Problemas
 
+### Error de configuración de Cloudinary
+
+**Problema**: "Faltan credenciales de Cloudinary"
+
+**Solución**:
+1. Ejecute `python setup_cloudinary.py` para configurar
+2. O cree manualmente el archivo `.env` con sus credenciales
+3. Ejecute `python test_cloudinary.py` para verificar
+
+### Error al subir imágenes a Cloudinary
+
+**Problema**: "Error al subir imagen"
+
+**Solución**:
+1. Verifique su conexión a internet
+2. Confirme que las credenciales en `.env` sean correctas
+3. Verifique que no haya excedido el límite del plan gratuito (25GB)
+
+### Imágenes no se muestran en la tabla
+
+**Problema**: Las imágenes no aparecen en la interfaz
+
+**Solución**:
+1. Ejecute la migración SQL: `database/migration_cloudinary.sql`
+2. Verifique conexión a internet
+3. Compruebe que las URLs están guardadas en la columna `imagen` de la BD
+
 ### Error de conexión a MySQL
 
 **Problema**: "Error de conexión: Access denied for user 'root'@'localhost'"
@@ -230,9 +312,12 @@ sudo apt install evince  # o xdg-utils
 - **Python 3.8+**: Lenguaje de programación
 - **CustomTkinter**: Framework para interfaz gráfica moderna
 - **MySQL**: Base de datos relacional
+- **Cloudinary**: Almacenamiento y optimización de imágenes en la nube
 - **ReportLab**: Generación de PDFs
 - **Pillow (PIL)**: Procesamiento de imágenes
 - **mysql-connector-python**: Conector de MySQL
+- **python-dotenv**: Manejo de variables de entorno
+- **requests**: Descarga de imágenes desde URLs
 
 ## Características de Diseño
 
