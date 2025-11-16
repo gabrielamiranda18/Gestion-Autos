@@ -50,6 +50,24 @@ class ImageLoader:
         return url
     
     @staticmethod
+    def load_from_url_async(url, size, callback):
+        """
+        Carga una imagen de forma asíncrona y ejecuta un callback cuando termina
+        
+        Args:
+            url (str): URL de la imagen
+            size (tuple): Tamaño deseado (ancho, alto)
+            callback (function): Función a llamar con la imagen cargada
+        """
+        def _load():
+            img = ImageLoader.load_from_url(url, size, use_cache=True)
+            if callback:
+                callback(img)
+        
+        thread = Thread(target=_load, daemon=True)
+        thread.start()
+    
+    @staticmethod
     def load_from_url(url, size=(50, 50), use_cache=True):
         """
         Carga una imagen desde una URL con caché y optimización
@@ -75,8 +93,8 @@ class ImageLoader:
             # Optimizar URL de Cloudinary para descargar imagen más pequeña
             optimized_url = ImageLoader._optimize_cloudinary_url(url, size[0], size[1])
             
-            # Descargar con timeout más largo y reintentos
-            response = requests.get(optimized_url, timeout=10, stream=True)
+            # Descargar con timeout corto para no bloquear la UI
+            response = requests.get(optimized_url, timeout=3, stream=True)
             response.raise_for_status()
             
             # Cargar imagen
@@ -93,13 +111,10 @@ class ImageLoader:
             return img
             
         except requests.exceptions.Timeout:
-            print(f"Timeout al cargar imagen: {url[:50]}...")
             return None
-        except requests.exceptions.RequestException as e:
-            print(f"Error de red al cargar imagen: {e}")
+        except requests.exceptions.RequestException:
             return None
-        except Exception as e:
-            print(f"Error al cargar imagen desde URL: {e}")
+        except Exception:
             return None
     
     @staticmethod

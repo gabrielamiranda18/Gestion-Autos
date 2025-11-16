@@ -537,9 +537,12 @@ class ClienteView(ctk.CTkFrame):
             )
         
         if success:
-            messagebox.showinfo("Éxito", "Cliente guardado correctamente")
+            # Destruir ventana primero para evitar que se sobreponga
             window.destroy()
+            # Recargar datos
             self.load_clientes()
+            # Mostrar mensaje después
+            messagebox.showinfo("Éxito", "Cliente guardado correctamente")
         else:
             messagebox.showerror("Error", result)
     

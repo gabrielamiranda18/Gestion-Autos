@@ -443,9 +443,12 @@ class VentaView(ctk.CTkFrame):
         success, result = VentaController.crear_venta(id_auto, id_cliente, monto, metodo_pago, fecha)
         
         if success:
-            messagebox.showinfo("Éxito", "Venta registrada correctamente")
+            # Destruir ventana primero para evitar que se sobreponga
             window.destroy()
+            # Recargar datos
             self.load_ventas()
+            # Mostrar mensaje después
+            messagebox.showinfo("Éxito", "Venta registrada correctamente")
         else:
             messagebox.showerror("Error", result)
     

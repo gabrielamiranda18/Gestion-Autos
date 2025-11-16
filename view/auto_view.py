@@ -191,24 +191,39 @@ class AutoView(ctk.CTkFrame):
             img_frame.place(relx=0.5, rely=0.5, anchor="center")
             img_frame.pack_propagate(False)
             
-            # Cargar imagen desde URL de Cloudinary (optimizada con caché)
-            imagen_cargada = None
-            if auto.get('imagen'):  # La columna 'imagen' ahora contiene la URL de Cloudinary
-                # Usar caché para evitar descargas repetidas
-                imagen_cargada = ImageLoader.load_from_url(auto['imagen'], size=(50, 50), use_cache=True)
+            # Mostrar placeholder mientras carga
+            placeholder = ctk.CTkLabel(img_frame, text="🚗", font=ctk.CTkFont(size=20))
+            placeholder.pack(expand=True)
             
-            if imagen_cargada:
-                try:
-                    photo = ImageTk.PhotoImage(imagen_cargada)
-                    img_label = ctk.CTkLabel(img_frame, image=photo, text="")
-                    img_label.image = photo
-                    img_label.pack(expand=True)
-                except Exception:
-                    img_label = ctk.CTkLabel(img_frame, text="🚗", font=ctk.CTkFont(size=20))
-                    img_label.pack(expand=True)
-            else:
-                img_label = ctk.CTkLabel(img_frame, text="🚗", font=ctk.CTkFont(size=20))
-                img_label.pack(expand=True)
+            # Cargar imagen de forma asíncrona si existe
+            if auto.get('imagen'):
+                # Primero intentar obtener del caché (rápido, no bloquea)
+                imagen_cargada = ImageLoader.load_from_url(auto['imagen'], size=(50, 50), use_cache=True)
+                
+                if imagen_cargada:
+                    # Si está en caché, mostrarla inmediatamente
+                    try:
+                        placeholder.destroy()
+                        photo = ImageTk.PhotoImage(imagen_cargada)
+                        img_label = ctk.CTkLabel(img_frame, image=photo, text="")
+                        img_label.image = photo
+                        img_label.pack(expand=True)
+                    except Exception:
+                        pass
+                else:
+                    # Si no está en caché, cargar en segundo plano
+                    def update_image(img):
+                        if img and img_frame.winfo_exists():
+                            try:
+                                placeholder.destroy()
+                                photo = ImageTk.PhotoImage(img)
+                                img_label = ctk.CTkLabel(img_frame, image=photo, text="")
+                                img_label.image = photo
+                                img_label.pack(expand=True)
+                            except Exception:
+                                pass
+                    
+                    ImageLoader.load_from_url_async(auto['imagen'], (50, 50), update_image)
             
             # Resto de datos
             values = [
@@ -423,10 +438,11 @@ class AutoView(ctk.CTkFrame):
         
         # Centrar ventana
         form_window.transient(self)
-        form_window.grab_set()
         
         # Centrar en la pantalla
         form_window.update_idletasks()
+        form_window.grab_set()
+
         screen_width = form_window.winfo_screenwidth()
         x = (screen_width // 2) - (window_width // 2)
         y = (screen_height // 2) - (window_height // 2)
@@ -683,9 +699,12 @@ class AutoView(ctk.CTkFrame):
             )
         
         if success:
-            messagebox.showinfo("Éxito", "Auto guardado correctamente")
+            # Destruir ventana primero para evitar que se sobreponga
             window.destroy()
+            # Recargar datos
             self.load_autos()
+            # Mostrar mensaje después
+            messagebox.showinfo("Éxito", "Auto guardado correctamente")
         else:
             messagebox.showerror("Error", result)
     

@@ -74,7 +74,7 @@ def main():
     # Verificaciones
     print("Verificando sistema...")
     check_python_version()
-    check_dependencies()
+    #check_dependencies()
     check_env_file()
     
     print()

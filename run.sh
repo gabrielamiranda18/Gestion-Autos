@@ -7,6 +7,11 @@ echo "  AutoGest - Sistema de Gestión de Autos"
 echo "=============================================="
 echo ""
 
+# Optimizaciones de rendimiento para Linux
+export PYTHONOPTIMIZE=1
+export PYTHONDONTWRITEBYTECODE=1
+export GDK_BACKEND=x11
+
 # Verificar si existe el entorno virtual
 if [ ! -d "venv" ]; then
     echo "⚠️  No se encontró el entorno virtual."
@@ -26,7 +31,7 @@ pip install -q -r requirements.txt
 echo ""
 echo "Iniciando aplicación..."
 echo ""
-python3 run.py
+./venv/bin/python run.py
 
 # Desactivar entorno virtual al salir
 deactivate

@@ -76,7 +76,6 @@ class CloudinaryService:
                 return False, "El archivo de imagen no existe", None
             
             # Subir imagen con optimización de tamaño y calidad
-            # Reducir tamaño para acelerar la subida (600x600 es suficiente)
             result = cloudinary.uploader.upload(
                 image_path,
                 folder=folder,
