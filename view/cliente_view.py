@@ -427,11 +427,13 @@ class ClienteView(ctk.CTkFrame):
         form_window.resizable(True, True)  # Permitir redimensionar
         form_window.minsize(450, 400)  # Tamaño mínimo
         
+        # Centrar ventana
         form_window.transient(self)
-        form_window.grab_set()
         
         # Centrar en la pantalla
         form_window.update_idletasks()
+        form_window.grab_set()
+        
         screen_width = form_window.winfo_screenwidth()
         x = (screen_width // 2) - (window_width // 2)
         y = (screen_height // 2) - (window_height // 2)
