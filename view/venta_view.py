@@ -279,6 +279,7 @@ class VentaView(ctk.CTkFrame):
         
         # Centrar en la pantalla
         form_window.update_idletasks()
+        #grab_set para evitar interacción con ventana principal
         form_window.grab_set()
         
         screen_width = form_window.winfo_screenwidth()
